@@ -1,0 +1,11 @@
+{
+  "name": "SAM & SYA: Dragon Slayer",
+  "short_name": "Dragon Slayer",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#07050c",
+  "theme_color": "#07050c",
+  "icons": [{"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]
+}
