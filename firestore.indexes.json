@@ -1,0 +1,9 @@
+{
+  "indexes": [
+    { "collectionGroup": "board", "queryScope": "COLLECTION",
+      "fields": [ { "fieldPath": "wk", "order": "ASCENDING" }, { "fieldPath": "wkPts", "order": "DESCENDING" } ] },
+    { "collectionGroup": "board", "queryScope": "COLLECTION",
+      "fields": [ { "fieldPath": "mo", "order": "ASCENDING" }, { "fieldPath": "moPts", "order": "DESCENDING" } ] }
+  ],
+  "fieldOverrides": []
+}
