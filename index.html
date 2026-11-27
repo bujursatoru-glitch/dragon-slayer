@@ -108,6 +108,14 @@ dl{display:grid;grid-template-columns:1fr auto;gap:2px 16px;text-align:left;font
 /* fullscreen total: no white flash or gaps while the browser switches to fullscreen */
 html:fullscreen,html:-webkit-full-screen{width:100vw;height:100dvh;background:#07050c}
 ::backdrop{background:#07050c}
+/* MULAI FULLSCREEN gate over the loading screen; the loading art and progress stay visible behind it */
+#fsgate{position:fixed;inset:0;z-index:260;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(ellipse at 50% 50%,rgba(7,5,12,.62),rgba(7,5,12,.2) 45%,rgba(7,5,12,0) 70%);touch-action:manipulation;cursor:pointer;transition:opacity .3s}
+#fsgate.on{display:flex}#fsgate.out{opacity:0;pointer-events:none}
+#fsgate button{display:flex;align-items:center;gap:12px;font-family:"Press Start 2P","Courier New",monospace;font-size:clamp(10px,3.6vmin,15px);letter-spacing:.06em;line-height:1;color:#1a0d05;padding:0 22px;min-height:54px;background:linear-gradient(180deg,#ffe9a0,#f2b63d 60%,#c98522);border:3px solid #fff3c4;border-radius:0;box-shadow:0 0 0 3px #1a0d05,0 0 30px rgba(255,200,90,.7);animation:fsgP 1.3s ease-in-out infinite;cursor:pointer}
+#fsgate button svg{width:18px;height:18px;flex:none}
+#fsgate small{font-family:"Pixelify Sans","Trebuchet MS",sans-serif;font-size:clamp(12px,3.4vmin,15px);color:#f4ecff;text-shadow:0 2px 0 #000;opacity:.9}
+@keyframes fsgP{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion:reduce){#fsgate button{animation:none}}
 @media (display-mode:fullscreen),(display-mode:standalone){html,body{overscroll-behavior:none}}
 #toasts{max-width:min(calc(92 * var(--vw)),420px)}.toast{padding:4px 10px}.toast span{font-size:13px}
 .dev{font-family:var(--disp);font-size:7px;color:var(--dim);letter-spacing:.14em;text-shadow:2px 2px 0 #120e1c;margin-top:-10px!important}
@@ -454,6 +462,26 @@ html.shortH .modes{gap:6px}html.shortH .mc .mtx p{font-size:10px}html.shortH .mc
 <div class="bx-logo"><small>SAM &amp; SYA</small><b>DRAGON SLAYER</b></div>
 <div class="bx-hero"><span class="ring"></span><span class="ring r2"></span><span class="slash"></span><img class="h1" alt=""><img class="h2" alt=""></div>
 <div class="bx-foot"><p class="bx-st" aria-live="polite">Loading…</p><div class="bx-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i></i><span>0%</span></div><p class="bx-tip"></p><div class="bx-btns"></div><p class="bx-hint"></p></div></div>
+<div id="fsgate" aria-label="Mulai fullscreen"><button type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#1a0d05" d="M1 1h5v2H3v3H1zM10 1h5v5h-2V3h-3zM1 10h2v3h3v2H1zM13 10h2v5h-5v-2h3z"/></svg><b>MULAI FULLSCREEN</b></button><small>Ketuk di mana saja untuk layar penuh</small></div>
+<script>
+/* MULAI FULLSCREEN gate: shown at once over the loading screen when the page runs in a normal browser tab on a phone.
+   Browsers only allow fullscreen inside a tap, so this is the one tap; the installed app (display: fullscreen) never sees it. */
+(function(){var G=document.getElementById('fsgate'),E=document.documentElement,D=document;if(!G)return;
+function mm(q){try{return matchMedia(q).matches}catch(e){return false}}
+var touch=mm('(pointer:coarse)')||'ontouchstart'in window,appFull=mm('(display-mode: fullscreen)'),
+    can=!!(E.requestFullscreen||E.webkitRequestFullscreen)&&D.fullscreenEnabled!==false&&D.webkitFullscreenEnabled!==false,off=false,lang='';
+try{var s=JSON.parse(localStorage.getItem('samsya_dragon_slayer_v2')||'null');if(s&&s.set){off=s.set.autoFS===0;lang=s.set.lang||''}}catch(e){}
+if(!lang)lang=(navigator.language||'').toLowerCase().indexOf('id')===0?'id':'en';
+if(lang!=='id'){G.querySelector('b').textContent='START FULLSCREEN';G.querySelector('small').textContent='Tap anywhere for full screen';G.setAttribute('aria-label','Start fullscreen')}
+if(!touch||appFull||!can||off||D.fullscreenElement){G.parentNode.removeChild(G);return}
+G.className='on';var done=false;
+function go(e){if(done)return;done=true;if(e){e.preventDefault();e.stopPropagation()}
+  if(!(D.fullscreenElement||D.webkitFullscreenElement)){try{var p=E.requestFullscreen?E.requestFullscreen({navigationUI:'hide'}):E.webkitRequestFullscreen();
+    if(p&&p.then)p.then(function(){try{var o=screen.orientation;if(o&&o.lock)o.lock('landscape').catch(function(){})}catch(x){}},function(){})}catch(x){}}
+  window.DS_FSGATE={tapped:true};try{dispatchEvent(new Event('ds-fsgate'))}catch(x){}
+  G.className='on out';setTimeout(function(){if(G.parentNode)G.parentNode.removeChild(G)},350)}
+G.addEventListener('click',go);})();
+</script>
 
 <canvas id="game" width="320" height="180"></canvas>
 <div id="touch"></div>
@@ -7376,10 +7404,17 @@ console.log('[BOOT] loading screen ready');
 </script>
 <script>
 /* =====================================================================
-   FULLSCREEN TOTAL  |  rasa aplikasi Android
+   FULLSCREEN TOTAL  |  rasa aplikasi Android, fullscreen sejak awal
    - Fullscreen selalu diminta LANGSUNG di dalam gesture pemain (pointerup / touchend / click), tidak pernah dari timer,
      jadi tidak diblokir browser.
-   - Tombol MULAI PETUALANGAN di layar loading tetap menjadi tap pertama yang masuk fullscreen (seperti sebelumnya).
+   - PWA terpasang (manifest display: fullscreen) sudah tampil penuh sejak dibuka, tanpa tombol apa pun.
+   - Di tab browser, Chrome mewajibkan satu sentuhan: gerbang MULAI FULLSCREEN (#fsgate) muncul di atas layar loading,
+     loading tetap berjalan dan terlihat di belakangnya. Setelah itu fullscreen dijaga sampai gameplay.
+   - Setelah sentuhan itu, layar loading langsung lanjut ke menu utama begitu siap (tanpa ketukan kedua), kecuali
+     pemain masih harus memilih login, main tanpa akun, atau coba lagi.
+   - Sentuhan pada login Google, bagikan, salin, dan undang tidak pernah dipakai untuk fullscreen: browser hanya memberi
+     satu izin per sentuhan, dan popup login harus mendapatkannya.
+   - Tombol MULAI PETUALANGAN di layar loading tetap masuk fullscreen bila gerbang tidak dipakai (seperti sebelumnya).
    - Tombol masuk permainan (Main, 1 VS 1, Multipemain, stage, Dungeon, Boss Raid, PvP, Ulangi, Lanjut) memicu fullscreen.
    - startLevel dibungkus: semua mode yang memuat level ikut masuk fullscreen. Bila tidak ada gesture (mis. tamu
      multipemain yang levelnya dimulai host), fullscreen dipasang pada sentuhan berikutnya.
@@ -7418,7 +7453,7 @@ function fallback(){if(S.hinted||installed())return;S.hinted=true;lockLand();
   let n=0;try{n=+localStorage.getItem('ds_fs_hint')||0;if(n>=3)return;localStorage.setItem('ds_fs_hint',n+1)}catch(e){}
   try{const P=LOC.id._phrase||(LOC.id._phrase={});for(const k in PH)if(P[k]==null)P[k]=PH[k]}catch(e){}
   const ios=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  setTimeout(()=>{try{UI.toast('Fullscreen is not available',ios?'Tap Share, then Add to Home Screen':'Open the browser menu, then Install app or Add to Home screen')}catch(e){}},500)}
+  const show=()=>{if(D.getElementById('bootx')){setTimeout(show,600);return}try{UI.toast('Fullscreen is not available',ios?'Tap Share, then Add to Home Screen':'Open the browser menu, then Install app or Add to Home screen')}catch(e){}};setTimeout(show,500)}
 
 /* must be called synchronously from a player gesture. quiet=true: a failure is not counted (no gesture was guaranteed) */
 function enter(quiet){
@@ -7448,14 +7483,19 @@ if(typeof window.startLevel==='function'){const sl0=window.startLevel;
 /* buttons that start or return to play; matched by action name or by label so new modes are covered too */
 const PLAY_A=/^(play|mp|stage|next|retry|resume|couch|solo|mode|netstart|ready|continue|start|duel|pv|vs|1v1|raid|boss|dungeon|arena|surv|rush)/i;
 const PLAY_T=/^\s*(main|play|mulai|start|lanjut(kan)?|continue|ulangi|retry|1\s*vs\s*1|pvp|dungeon|boss\s*raid|multipemain|multiplayer)\b/i;
+/* actions that need the tap's own permission (popup login, share sheet, clipboard) or that live on the loading screen */
+const SENS_A=/^(login|logout|sign|google|invite|pvinvite|pvcopy|copy|share|link|unlink|export|import|del)/i;
+const SENS_T=/google|login|logout|keluar akun|bagikan|share|salin|copy|undang|invite/i;
+function isSensitive(el){if(el.tagName==='A'&&el.getAttribute('href'))return true;if(el.closest('#bootx'))return true;
+  const a=(el.dataset&&el.dataset.a)||'';return (a&&SENS_A.test(a))||SENS_T.test(el.textContent||'')}
 function onTap(e){
   if(e.type==='pointerup'&&e.pointerType==='mouse')return;
   if(!touch()||!autoOn()||fsEl()||appFull())return;
   const tg=e.target;if(!tg||!tg.closest)return;
   if(tg.closest('input,textarea,select,[contenteditable="true"]'))return;
-  if(tg.closest('#bootx'))return;
-  if(window.BOOTX&&!BOOTX.started)return;
-  const el=tg.closest('[data-a],button');
+  if(tg.closest('#fsgate'))return;
+  const el=tg.closest('[data-a],button,a');
+  if(el&&isSensitive(el))return;
   if(el&&!el.disabled){const a=(el.dataset&&el.dataset.a)||'';
     if((a&&PLAY_A.test(a.split(':')[0]))||PLAY_T.test(el.textContent||'')){S.armed=true;S.fails=0}}
   if(!S.armed||S.fails>=3)return;
@@ -7463,6 +7503,17 @@ function onTap(e){
 addEventListener('pointerup',onTap,{capture:true,passive:true});
 addEventListener('touchend',onTap,{capture:true,passive:true});
 addEventListener('click',onTap,true);
+
+/* MULAI FULLSCREEN gate (static markup near #bootx, its own tiny script requests fullscreen inside the tap) */
+function gateTapped(){S.armed=true;S.fails=0;setTimeout(()=>{if(!fsEl()&&!appFull()){S.fails=2;fallback()}else lockLand().then(relayout)},900)}
+if(window.DS_FSGATE&&DS_FSGATE.tapped)gateTapped();
+addEventListener('ds-fsgate',gateTapped);
+
+/* after the player's first tap (gate) or inside the installed app, go from loading straight to the main menu when ready */
+if(window.BOOTX){let since=0;const iv=setInterval(()=>{const B=window.BOOTX;if(!B||B.started){clearInterval(iv);return}
+  const go=(window.DS_FSGATE&&DS_FSGATE.tapped)||(touch()&&installed());if(!go){since=0;return}
+  let st=null;try{st=B.stage()}catch(e){}
+  if(st&&st.btn==='start'&&st.ok&&!st.extra&&B.shown>=99.5){if(!since)since=performance.now();else if(performance.now()-since>900){clearInterval(iv);try{B.start()}catch(e){}}}else since=0},150)}
 
 /* MULAI PETUALANGAN already enters fullscreen inside its tap; from then on the session stays in fullscreen */
 if(window.BOOTX&&typeof BOOTX.start==='function'){const st0=BOOTX.start;BOOTX.start=function(){if(!this.started){S.armed=true;S.fails=0}return st0.apply(this,arguments)}}
